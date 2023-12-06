@@ -23,3 +23,9 @@ type Float64 float64
 func (m Float64) Get() float64 {
 	return float64(m)
 }
+
+type Complex128 complex128
+
+func (c Complex128) Get() complex128 {
+	return complex128(c)
+}
