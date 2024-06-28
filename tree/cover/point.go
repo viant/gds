@@ -27,3 +27,8 @@ func (p *Point) DecodeBinary(stream *bintly.Reader) error {
 func (p *Point) HasValue() bool {
 	return p.index != -1
 }
+
+func NewPoint(vector ...float32) *Point {
+	p := &Point{Vector: vector}
+	return p
+}

@@ -16,7 +16,7 @@ type Tree[T any] struct {
 }
 
 // Insert adds a new point (embedding vector) to the cover tree.
-func (t *Tree[T]) Insert(point *Point, value T) {
+func (t *Tree[T]) Insert(value T, point *Point) {
 	point.index = t.values.put(value)
 	if t.root == nil {
 		t.root = &Node{point: point, level: 0}

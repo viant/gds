@@ -43,7 +43,7 @@ func TestNewTree(t *testing.T) {
 	for _, testCase := range testCases {
 		aTree := NewTree[string](1.3, DistanceFunctionCosine)
 		for i := range testCase.points {
-			aTree.Insert(&testCase.points[i], testCase.values[i])
+			aTree.Insert(testCase.values[i], &testCase.points[i])
 		}
 		match := aTree.KNearestNeighbors(&testCase.search, 1)
 		if !assert.True(t, len(match) > 0) {
@@ -91,7 +91,7 @@ func TestTree_EncodeTree(t *testing.T) {
 	for _, testCase := range testCases {
 		aTree := NewTree[string](1.3, DistanceFunctionCosine)
 		for i := range testCase.points {
-			aTree.Insert(&testCase.points[i], testCase.values[i])
+			aTree.Insert(testCase.values[i], &testCase.points[i])
 		}
 		treeBuffer := new(bytes.Buffer)
 		err := aTree.EncodeTree(treeBuffer)
