@@ -50,18 +50,28 @@ func (v *values[T]) Decode(reader io.Reader) error {
 	switch actual := values.(type) {
 	case []string:
 		buffer.Strings(&actual)
+		v.data = any(actual).([]T)
 	case []int:
 		buffer.Ints(&actual)
+		v.data = any(actual).([]T)
 	case []float32:
 		buffer.Float32s(&actual)
+		v.data = any(actual).([]T)
 	case []float64:
 		buffer.Float64s(&actual)
+		v.data = any(actual).([]T)
 	case []bool:
 		buffer.Bools(&actual)
+		v.data = any(actual).([]T)
 	default:
+		v.ensureType()
 		if v.Type.Comparable() {
-			raw := unsafe.Slice((*byte)(unsafe.Pointer(&values)), v.Type.Size())
+			var raw []byte
 			buffer.Uint8s(&raw)
+			size := len(raw) / int(v.Type.Size())
+			v.data = make([]T, size)
+			data := unsafe.Slice((*byte)(unsafe.Pointer(&v.data)), len(v.data)*int(v.Type.Size()))
+			copy(data, raw)
 		} else {
 			return v.decodeCustom(buffer)
 		}
@@ -85,8 +95,9 @@ func (v *values[T]) Encode(writer io.Writer) error {
 	case []bool:
 		buffer.Bools(actual)
 	default:
+		v.ensureType()
 		if v.Type.Comparable() {
-			raw := unsafe.Slice((*byte)(unsafe.Pointer(&values)), v.Type.Size())
+			raw := unsafe.Slice((*byte)(unsafe.Pointer(&v.data)), len(v.data)*int(v.Type.Size()))
 			buffer.Uint8s(raw)
 		} else {
 			return v.encodeCustom(buffer)
@@ -94,6 +105,12 @@ func (v *values[T]) Encode(writer io.Writer) error {
 	}
 	_, err := writer.Write(buffer.Bytes())
 	return err
+}
+
+func (v *values[T]) ensureType() {
+	if v.Type == nil {
+		v.useType(reflect.TypeOf(v.data).Elem())
+	}
 }
 
 func (v *values[T]) encodeCustom(writer *bintly.Writer) error {
@@ -122,7 +139,10 @@ func (v *values[T]) decodeCustom(buffer *bintly.Reader) error {
 	for i := range v.data {
 		decoder, ok := any(v.data[i]).(bintly.Decoder)
 		if !ok {
-			return fmt.Errorf("unable to cast Encoder from %T", v.data[i])
+			decoder, ok = any(&v.data[i]).(bintly.Decoder)
+			if !ok {
+				return fmt.Errorf("unable to cast Encoder from %T", v.data[i])
+			}
 		}
 		if err := decoder.DecodeBinary(buffer); err != nil {
 			return err

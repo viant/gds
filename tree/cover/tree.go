@@ -2,16 +2,17 @@ package cover
 
 import (
 	"container/heap"
+	"io"
 	"math"
 )
 
 // Tree represents a cover tree.
 type Tree[T any] struct {
-	root       *Node
-	pointSize  int //point vector size
-	base       float32
-	distanceFn DistanceFunc
-	values     values[T]
+	root             *Node
+	base             float32
+	distanceFuncName DistanceFunction
+	distanceFnunc    DistanceFunc
+	values           values[T]
 }
 
 // Insert adds a new point (embedding vector) to the cover tree.
@@ -24,9 +25,51 @@ func (t *Tree[T]) Insert(point *Point, value T) {
 	}
 }
 
-func (t *Tree[T]) insert(node *Node, point *Point, level int) {
+func (t *Tree[T]) EncodeValues(writer io.Writer) error {
+	return t.values.Encode(writer)
+}
+
+func (t *Tree[T]) DecodeValues(reader io.Reader) error {
+	t.values = values[T]{data: make([]T, 0)}
+	t.values.ensureType()
+	return t.values.Decode(reader)
+}
+
+func (t *Tree[T]) EncodeTree(writer io.Writer) error {
+	buffer := writers.Get()
+	defer writers.Put(buffer)
+	buffer.Float32(t.base)
+
+	buffer.String(string(t.distanceFuncName))
+	if err := buffer.Coder(t.root); err != nil {
+		return err
+	}
+	_, err := writer.Write(buffer.Bytes())
+	return err
+}
+
+func (t *Tree[T]) DecodeTree(reader io.Reader) error {
+	buffer := readers.Get()
+	defer readers.Put(buffer)
+	data, err := io.ReadAll(reader)
+	if err != nil {
+		return err
+	}
+	if err = buffer.FromBytes(data); err != nil {
+		return err
+	}
+	buffer.Float32(&t.base)
+	var distance string
+	buffer.String(&distance)
+	t.distanceFuncName = DistanceFunction(distance)
+	t.distanceFnunc = t.distanceFuncName.Function()
+	t.root = &Node{}
+	return buffer.Coder(t.root)
+}
+
+func (t *Tree[T]) insert(node *Node, point *Point, level int32) {
 	baseLevel := float32(math.Pow(float64(t.base), float64(level)))
-	if t.distanceFn(point, node.point) < baseLevel {
+	if t.distanceFnunc(point, node.point) < baseLevel {
 		for i := range node.children {
 			child := &node.children[i]
 			t.insert(child, point, level-1)
@@ -35,11 +78,11 @@ func (t *Tree[T]) insert(node *Node, point *Point, level int) {
 		node.children = append(node.children, NewNode(point, level-1, t.base))
 		return
 	}
-	if t.distanceFn(point, node.point) < node.baseLevel {
+	if t.distanceFnunc(point, node.point) < node.baseLevel {
 		node.children = append(node.children, NewNode(point, level-1, t.base))
 		return
 	}
-	for level > node.level && t.distanceFn(point, node.point) >= baseLevel {
+	for level > node.level && t.distanceFnunc(point, node.point) >= baseLevel {
 		level++
 	}
 	t.insert(t.root, point, level)
@@ -59,7 +102,7 @@ func (t *Tree[T]) remove(node *Node, point *Point) (bool, *Node) {
 	if node == nil {
 		return false, nil
 	}
-	if t.distanceFn(point, node.point) == 0 {
+	if t.distanceFnunc(point, node.point) == 0 {
 		if len(node.children) == 0 {
 			return true, nil
 		}
@@ -121,7 +164,7 @@ func (t *Tree[T]) KNearestNeighbors(point *Point, k int) []*Point {
 }
 
 func (t *Tree[T]) kNearestNeighbors(node *Node, point *Point, k int, h *Neighbors) {
-	dist := t.distanceFn(point, node.point)
+	dist := t.distanceFnunc(point, node.point)
 	if h.Len() < k {
 		heap.Push(h, Neighbor{Point: node.point, Distance: dist})
 	} else if dist < (*h)[0].Distance {
@@ -134,6 +177,6 @@ func (t *Tree[T]) kNearestNeighbors(node *Node, point *Point, k int, h *Neighbor
 }
 
 // NewTree initializes and returns a new Tree.
-func NewTree[T any](base float32, distanceFn DistanceFunc) *Tree[T] {
-	return &Tree[T]{base: base, distanceFn: distanceFn, values: values[T]{data: make([]T, 0)}}
+func NewTree[T any](base float32, distanceFn DistanceFunction) *Tree[T] {
+	return &Tree[T]{base: base, distanceFnunc: distanceFn.Function(), distanceFuncName: distanceFn, values: values[T]{data: make([]T, 0)}}
 }
