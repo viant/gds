@@ -221,6 +221,19 @@ func (m *NumericMap[T]) rehash() {
 	}
 }
 
+func (m *NumericMap[T]) Clear(expectedSize int, keys []int64, data []T) {
+	capacity := arraySize(expectedSize, m.fillFactor)
+	if len(m.keys) > capacity {
+		m.keys = m.keys[:capacity]
+		m.data = m.data[:capacity]
+	}
+	copy(m.keys, keys)
+	copy(m.data, data)
+	m.size = 0
+	m.hasFreeKey = false
+	m.mask = int64(capacity - 1)
+}
+
 // Size returns the number of elements in the map.
 func (m *NumericMap[T]) Size() int {
 	if m == nil {
