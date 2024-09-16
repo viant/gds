@@ -246,7 +246,7 @@ func (m *FastMap[T]) Cap() int {
 // NewNumericMap creates a new FastMap with the specified expected size and fill factor.
 // The fill factor must be between 0 and 1 (exclusive), and determines when the map will be resized.
 // The map will grow automatically as needed.
-func NewNumericMap[T any](expectedSize int, fillFactor float64) *FastMap[T] {
+func NewFastMap[T any](expectedSize int, fillFactor float64) *FastMap[T] {
 	if fillFactor <= 0 || fillFactor >= 1 {
 		panic("FillFactor must be in (0, 1)")
 	}
