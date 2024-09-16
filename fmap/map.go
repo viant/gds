@@ -18,11 +18,11 @@ func phiMix(x int64) int64 {
 	return h ^ (h >> 16)
 }
 
-// NumericMap is a high-performance hash map for int64 keys and numeric values.
+// FastMap is a high-performance hash map for int64 keys and numeric values.
 // It uses open addressing with linear probing and a custom hash function for int64 keys.
 // The map is generic over the value type T, which must satisfy the Numeric interface.
 // This implementation is optimized for performance and low memory overhead, and is not safe for concurrent use.
-type NumericMap[T any] struct {
+type FastMap[T any] struct {
 	keys       []int64 // Array of keys
 	data       []T     // Array of values corresponding to keys
 	fillFactor float64 // Fill factor for resizing the map
@@ -72,7 +72,7 @@ func computeCapacity(expected int, fillFactor float64) int {
 
 // Get retrieves the value associated with the given key.
 // It returns the value and a boolean indicating whether the key was found.
-func (m *NumericMap[T]) Get(key int64) (T, bool) {
+func (m *FastMap[T]) Get(key int64) (T, bool) {
 	var zero T
 	if key == FREE_KEY {
 		if m.hasFreeKey {
@@ -105,7 +105,7 @@ func (m *NumericMap[T]) Get(key int64) (T, bool) {
 
 // GetPointer retrieves the value pointer associated with the given key.
 // It returns the value and a boolean indicating whether the key was found.
-func (m *NumericMap[T]) GetPointer(key int64) (*T, bool) {
+func (m *FastMap[T]) GetPointer(key int64) (*T, bool) {
 	var zero *T
 	if key == FREE_KEY {
 		if m.hasFreeKey {
@@ -137,7 +137,7 @@ func (m *NumericMap[T]) GetPointer(key int64) (*T, bool) {
 }
 
 // Put adds or updates the key with the value val.
-func (m *NumericMap[T]) Put(key int64, val T) {
+func (m *FastMap[T]) Put(key int64, val T) {
 	if key == FREE_KEY {
 		if !m.hasFreeKey {
 			m.size++
@@ -184,7 +184,7 @@ func (m *NumericMap[T]) Put(key int64, val T) {
 
 // rehash resizes the map when the load factor exceeds the threshold.
 // It doubles the computeCapacity and reinserts all existing keys and values.
-func (m *NumericMap[T]) rehash() {
+func (m *FastMap[T]) rehash() {
 	newCapacity := len(m.keys) * 2
 
 	// Update mask and threshold based on new computeCapacity
@@ -214,7 +214,7 @@ func (m *NumericMap[T]) rehash() {
 	}
 }
 
-func (m *NumericMap[T]) Clear(expectedSize int, keys []int64, data []T) {
+func (m *FastMap[T]) Clear(expectedSize int, keys []int64, data []T) {
 	capacity := computeCapacity(expectedSize, m.fillFactor)
 	if len(m.keys) > capacity {
 		m.keys = m.keys[:capacity]
@@ -228,7 +228,7 @@ func (m *NumericMap[T]) Clear(expectedSize int, keys []int64, data []T) {
 }
 
 // Size returns the number of elements in the map.
-func (m *NumericMap[T]) Size() int {
+func (m *FastMap[T]) Size() int {
 	if m == nil {
 		return 0
 	}
@@ -236,17 +236,17 @@ func (m *NumericMap[T]) Size() int {
 }
 
 // Cap returns the computeCapacity of the map.
-func (m *NumericMap[T]) Cap() int {
+func (m *FastMap[T]) Cap() int {
 	if m == nil {
 		return 0
 	}
 	return len(m.keys)
 }
 
-// NewNumericMap creates a new NumericMap with the specified expected size and fill factor.
+// NewNumericMap creates a new FastMap with the specified expected size and fill factor.
 // The fill factor must be between 0 and 1 (exclusive), and determines when the map will be resized.
 // The map will grow automatically as needed.
-func NewNumericMap[T any](expectedSize int, fillFactor float64) *NumericMap[T] {
+func NewNumericMap[T any](expectedSize int, fillFactor float64) *FastMap[T] {
 	if fillFactor <= 0 || fillFactor >= 1 {
 		panic("FillFactor must be in (0, 1)")
 	}
@@ -255,7 +255,7 @@ func NewNumericMap[T any](expectedSize int, fillFactor float64) *NumericMap[T] {
 	}
 
 	capacity := computeCapacity(expectedSize, fillFactor)
-	m := &NumericMap[T]{
+	m := &FastMap[T]{
 		keys:       make([]int64, capacity),
 		data:       make([]T, capacity),
 		fillFactor: fillFactor,

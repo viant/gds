@@ -16,7 +16,7 @@ type TestCase[T any] struct {
 	expectFound bool
 }
 
-// TestNumericMapDataDriven tests the NumericMap using a data-driven approach.
+// TestNumericMapDataDriven tests the FastMap using a data-driven approach.
 func TestNumericMapDataDriven(t *testing.T) {
 	// Define test cases
 	testCases := []TestCase[int64]{
@@ -62,7 +62,7 @@ func TestNumericMapDataDriven(t *testing.T) {
 		},
 	}
 
-	// Initialize a new NumericMap
+	// Initialize a new FastMap
 	m := NewNumericMap[int64](4, 0.75)
 
 	// Execute test cases
@@ -93,7 +93,7 @@ func TestNumericMapDataDriven(t *testing.T) {
 	}
 }
 
-// TestNumericMapCollisionDataDriven tests collision handling in NumericMap using data-driven approach.
+// TestNumericMapCollisionDataDriven tests collision handling in FastMap using data-driven approach.
 func TestNumericMapCollisionDataDriven(t *testing.T) {
 	// Define test cases with keys that may cause collisions
 	testCases := []TestCase[int]{
