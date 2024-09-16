@@ -182,6 +182,33 @@ func (m *FastMap[T]) Put(key int64, val T) {
 	}
 }
 
+func (m *FastMap[T]) Iterator() func() (int, T) {
+	i := 0
+	iptr := &i
+	foundFreeKey := false
+	keyLen := len(m.keys)
+	return func() (int, T) {
+		var t T
+		var k int
+		for ; *iptr < keyLen; *iptr++ {
+			if m.keys[*iptr] == FREE_KEY {
+				if foundFreeKey {
+					continue
+				}
+				if m.hasFreeKey {
+					foundFreeKey = true
+					return int(FREE_KEY), m.freeVal
+				}
+			}
+			k = int(m.keys[*iptr])
+			t = m.data[*iptr]
+			*iptr++
+			break
+		}
+		return k, t
+	}
+}
+
 // rehash resizes the map when the load factor exceeds the threshold.
 // It doubles the computeCapacity and reinserts all existing keys and values.
 func (m *FastMap[T]) rehash() {

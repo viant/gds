@@ -16,8 +16,8 @@ type TestCase[T any] struct {
 	expectFound bool
 }
 
-// TestNumericMapDataDriven tests the FastMap using a data-driven approach.
-func TestNumericMapDataDriven(t *testing.T) {
+// TestFastMapDataDriven tests the FastMap using a data-driven approach.
+func TestFastMapDataDriven(t *testing.T) {
 	// Define test cases
 	testCases := []TestCase[int64]{
 		{
@@ -63,7 +63,7 @@ func TestNumericMapDataDriven(t *testing.T) {
 	}
 
 	// Initialize a new FastMap
-	m := NewNumericMap[int64](4, 0.75)
+	m := NewFastMap[int64](4, 0.75)
 
 	// Execute test cases
 	for _, tc := range testCases {
@@ -91,10 +91,16 @@ func TestNumericMapDataDriven(t *testing.T) {
 			}
 		})
 	}
+
+	next := m.Iterator()
+	for i := 0; i < m.Size(); i++ {
+		k, v := next()
+		t.Logf("Key: %d, Value: %d", k, v)
+	}
 }
 
-// TestNumericMapCollisionDataDriven tests collision handling in FastMap using data-driven approach.
-func TestNumericMapCollisionDataDriven(t *testing.T) {
+// TestFastMapCollisionDataDriven tests collision handling in FastMap using data-driven approach.
+func TestFastMapCollisionDataDriven(t *testing.T) {
 	// Define test cases with keys that may cause collisions
 	testCases := []TestCase[int]{
 		{
@@ -123,7 +129,7 @@ func TestNumericMapCollisionDataDriven(t *testing.T) {
 		},
 	}
 
-	m := NewNumericMap[int](4, 0.75)
+	m := NewFastMap[int](4, 0.75)
 
 	// Execute test cases
 	for _, tc := range testCases {
@@ -148,8 +154,8 @@ func TestNumericMapCollisionDataDriven(t *testing.T) {
 	}
 }
 
-// TestNumericMapRehashDataDriven tests rehashing using a data-driven approach.
-func TestNumericMapRehashDataDriven(t *testing.T) {
+// TestFastMapRehashDataDriven tests rehashing using a data-driven approach.
+func TestFastMapRehashDataDriven(t *testing.T) {
 	// Define test cases
 	var testCases []TestCase[int]
 	for i := 1; i <= 20; i++ {
@@ -164,7 +170,7 @@ func TestNumericMapRehashDataDriven(t *testing.T) {
 		testCases = append(testCases, tc)
 	}
 
-	m := NewNumericMap[int](4, 0.75)
+	m := NewFastMap[int](4, 0.75)
 
 	// Execute test cases
 	for _, tc := range testCases {
@@ -189,8 +195,8 @@ func TestNumericMapRehashDataDriven(t *testing.T) {
 	}
 }
 
-// TestNumericMapDifferentTypesDataDriven tests different numeric types using data-driven approach.
-func TestNumericMapDifferentTypesDataDriven(t *testing.T) {
+// TestFastMapDifferentTypesDataDriven tests different Fast types using data-driven approach.
+func TestFastMapDifferentTypesDataDriven(t *testing.T) {
 	// Test with float64 values
 	floatTestCases := []TestCase[float64]{
 		{
@@ -211,7 +217,7 @@ func TestNumericMapDifferentTypesDataDriven(t *testing.T) {
 		},
 	}
 
-	floatMap := NewNumericMap[float64](4, 0.75)
+	floatMap := NewFastMap[float64](4, 0.75)
 
 	for _, tc := range floatTestCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -249,7 +255,7 @@ func TestNumericMapDifferentTypesDataDriven(t *testing.T) {
 		},
 	}
 
-	uintMap := NewNumericMap[uint64](4, 0.75)
+	uintMap := NewFastMap[uint64](4, 0.75)
 
 	for _, tc := range uintTestCases {
 		t.Run(tc.name, func(t *testing.T) {
