@@ -33,7 +33,7 @@ type NumericMap[T Numeric] struct {
 	keys       []int64 // Array of keys
 	data       []T     // Array of values corresponding to keys
 	fillFactor float64 // Fill factor for resizing the map
-	threshold  int     // Resize threshold based on capacity and fill factor
+	threshold  int     // Resize threshold based on computeCapacity and fill factor
 	size       int     // Number of elements in the map
 
 	mask int64 // Mask for calculating indices during probing
@@ -43,7 +43,7 @@ type NumericMap[T Numeric] struct {
 }
 
 // nextPowerOf2 returns the next power of two greater than or equal to x.
-// It is used to ensure that the capacity of the map is always a power of two.
+// It is used to ensure that the computeCapacity of the map is always a power of two.
 func nextPowerOf2(x uint64) uint64 {
 	if x == 0 {
 		return 1
@@ -64,15 +64,15 @@ func bitsLeadingZeros(x uint64) int {
 	return 64 - n
 }
 
-// arraySize calculates the required capacity based on the expected number of elements and fill factor.
-// It ensures that the capacity is a power of two and at least 2.
-func arraySize(expected int, fillFactor float64) int {
+// computeCapacity calculates the required computeCapacity based on the expected number of elements and fill factor.
+// It ensures that the computeCapacity is a power of two and at least 2.
+func computeCapacity(expected int, fillFactor float64) int {
 	s := nextPowerOf2(uint64(math.Ceil(float64(expected) / fillFactor)))
 	if s < 2 {
 		s = 2
 	}
 	if s > math.MaxInt64 {
-		panic("Requested capacity exceeds maximum int64 value")
+		panic("Requested computeCapacity exceeds maximum int64 value")
 	}
 	return int(s)
 }
@@ -190,11 +190,11 @@ func (m *NumericMap[T]) Put(key int64, val T) {
 }
 
 // rehash resizes the map when the load factor exceeds the threshold.
-// It doubles the capacity and reinserts all existing keys and values.
+// It doubles the computeCapacity and reinserts all existing keys and values.
 func (m *NumericMap[T]) rehash() {
 	newCapacity := len(m.keys) * 2
 
-	// Update mask and threshold based on new capacity
+	// Update mask and threshold based on new computeCapacity
 	m.mask = int64(newCapacity - 1)
 	m.threshold = int(math.Floor(float64(newCapacity) * m.fillFactor))
 
@@ -202,7 +202,7 @@ func (m *NumericMap[T]) rehash() {
 	oldKeys := m.keys
 	oldData := m.data
 
-	// Create new slices with updated capacity
+	// Create new slices with updated computeCapacity
 	m.keys = make([]int64, newCapacity)
 	m.data = make([]T, newCapacity)
 
@@ -222,7 +222,7 @@ func (m *NumericMap[T]) rehash() {
 }
 
 func (m *NumericMap[T]) Clear(expectedSize int, keys []int64, data []T) {
-	capacity := arraySize(expectedSize, m.fillFactor)
+	capacity := computeCapacity(expectedSize, m.fillFactor)
 	if len(m.keys) > capacity {
 		m.keys = m.keys[:capacity]
 		m.data = m.data[:capacity]
@@ -242,6 +242,14 @@ func (m *NumericMap[T]) Size() int {
 	return m.size
 }
 
+// Cap returns the computeCapacity of the map.
+func (m *NumericMap[T]) Cap() int {
+	if m == nil {
+		return 0
+	}
+	return len(m.keys)
+}
+
 // NewNumericMap creates a new NumericMap with the specified expected size and fill factor.
 // The fill factor must be between 0 and 1 (exclusive), and determines when the map will be resized.
 // The map will grow automatically as needed.
@@ -253,7 +261,7 @@ func NewNumericMap[T Numeric](expectedSize int, fillFactor float64) *NumericMap[
 		panic("Size must be positive")
 	}
 
-	capacity := arraySize(expectedSize, fillFactor)
+	capacity := computeCapacity(expectedSize, fillFactor)
 	m := &NumericMap[T]{
 		keys:       make([]int64, capacity),
 		data:       make([]T, capacity),
