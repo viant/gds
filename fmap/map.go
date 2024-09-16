@@ -110,6 +110,39 @@ func (m *NumericMap[T]) Get(key int64) (T, bool) {
 	}
 }
 
+// GetPointer retrieves the value pointer associated with the given key.
+// It returns the value and a boolean indicating whether the key was found.
+func (m *NumericMap[T]) GetPointer(key int64) (*T, bool) {
+	var zero *T
+	if key == FREE_KEY {
+		if m.hasFreeKey {
+			return &m.freeVal, true
+		}
+		return nil, false
+	}
+
+	ptr := phiMix(key) & m.mask
+	k := m.keys[ptr]
+
+	if k == FREE_KEY {
+		return zero, false
+	}
+	if k == key {
+		return &m.data[ptr], true
+	}
+
+	for {
+		ptr = (ptr + 1) & m.mask
+		k = m.keys[ptr]
+		if k == FREE_KEY {
+			return zero, false
+		}
+		if k == key {
+			return &m.data[ptr], true
+		}
+	}
+}
+
 // Put adds or updates the key with the value val.
 func (m *NumericMap[T]) Put(key int64, val T) {
 	if key == FREE_KEY {
