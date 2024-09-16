@@ -4,13 +4,6 @@ import (
 	"math"
 )
 
-// Numeric interface defines the numeric types that can be used as values in the map.
-type Numeric interface {
-	int | int8 | int16 | int32 | int64 |
-		uint | uint8 | uint16 | uint32 | uint64 |
-		float32 | float64
-}
-
 // INT_PHI is a constant used in the hash function to scramble the keys.
 // It is derived from the golden ratio and helps in distributing keys uniformly.
 const INT_PHI = 0x9E3779B9
@@ -29,7 +22,7 @@ func phiMix(x int64) int64 {
 // It uses open addressing with linear probing and a custom hash function for int64 keys.
 // The map is generic over the value type T, which must satisfy the Numeric interface.
 // This implementation is optimized for performance and low memory overhead, and is not safe for concurrent use.
-type NumericMap[T Numeric] struct {
+type NumericMap[T any] struct {
 	keys       []int64 // Array of keys
 	data       []T     // Array of values corresponding to keys
 	fillFactor float64 // Fill factor for resizing the map
@@ -253,7 +246,7 @@ func (m *NumericMap[T]) Cap() int {
 // NewNumericMap creates a new NumericMap with the specified expected size and fill factor.
 // The fill factor must be between 0 and 1 (exclusive), and determines when the map will be resized.
 // The map will grow automatically as needed.
-func NewNumericMap[T Numeric](expectedSize int, fillFactor float64) *NumericMap[T] {
+func NewNumericMap[T any](expectedSize int, fillFactor float64) *NumericMap[T] {
 	if fillFactor <= 0 || fillFactor >= 1 {
 		panic("FillFactor must be in (0, 1)")
 	}

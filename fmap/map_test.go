@@ -6,7 +6,7 @@ import (
 )
 
 // TestCase defines a single test case with inputs and expected outputs.
-type TestCase[T Numeric] struct {
+type TestCase[T any] struct {
 	name        string
 	key         int64
 	value       T
