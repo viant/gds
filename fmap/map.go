@@ -182,30 +182,39 @@ func (m *FastMap[T]) Put(key int64, val T) {
 	}
 }
 
-func (m *FastMap[T]) Iterator() func() (int, T) {
-	i := 0
-	iptr := &i
-	foundFreeKey := false
+// Value returns the key and value at the given pointer.
+//
+//go:inline
+func (m *FastMap[T]) Value(ptr *int, foundFreeKey *bool) (k int, t T, hasMode bool) {
 	keyLen := len(m.keys)
-	return func() (int, T) {
-		var t T
-		var k int
-		for ; *iptr < keyLen; *iptr++ {
-			if m.keys[*iptr] == FREE_KEY {
-				if foundFreeKey {
-					continue
-				}
-				if m.hasFreeKey {
-					foundFreeKey = true
-					return int(FREE_KEY), m.freeVal
-				}
-			}
-			k = int(m.keys[*iptr])
-			t = m.data[*iptr]
-			*iptr++
-			break
+loop:
+	{
+		if *ptr >= keyLen {
+			return k, t, false
 		}
-		return k, t
+		key := m.keys[*ptr]
+		value := m.data[*ptr]
+		*ptr++
+		if key == FREE_KEY {
+			if m.hasFreeKey {
+				if *foundFreeKey {
+					goto loop
+				}
+				*foundFreeKey = true
+				return int(FREE_KEY), m.freeVal, true
+			}
+			goto loop
+
+		}
+		return int(key), value, true
+	}
+}
+
+func (m *FastMap[T]) Iterator() func() (int, T, bool) {
+	i := 0
+	foundFreeKey := false
+	return func() (int, T, bool) {
+		return m.Value(&i, &foundFreeKey)
 	}
 }
 

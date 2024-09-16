@@ -93,8 +93,11 @@ func TestFastMapDataDriven(t *testing.T) {
 	}
 
 	next := m.Iterator()
-	for i := 0; i < m.Size(); i++ {
-		k, v := next()
+	for {
+		k, v, hasMore := next()
+		if !hasMore {
+			break
+		}
 		t.Logf("Key: %d, Value: %d", k, v)
 	}
 }
