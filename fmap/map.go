@@ -265,6 +265,7 @@ func (m *FastMap[T]) Clear(expectedSize int, keys []int64, data []T) {
 	copy(m.keys, keys)
 	copy(m.data, data)
 	m.size = 0
+	m.scn = 0
 	m.hasFreeKey = false
 	m.cap = uint32(capacity)
 	m.mask = int64(capacity - 1)
