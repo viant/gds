@@ -157,8 +157,9 @@ func (m *FastMap[T]) Put(key int64, val T) {
 	k := m.keys[ptr]
 
 	if k == FREE_KEY { // Empty slot found
-		m.keys[ptr] = key
+		atomic.AddUint32(&m.scn, 1) //added new key
 		m.data[ptr] = val
+		m.keys[ptr] = key
 		m.size++
 		if m.size >= m.threshold {
 			m.rehash()
@@ -174,8 +175,9 @@ func (m *FastMap[T]) Put(key int64, val T) {
 		ptr = (ptr + 1) & m.mask
 		k = m.keys[ptr]
 		if k == FREE_KEY {
-			m.keys[ptr] = key
+			atomic.AddUint32(&m.scn, 1) //added new key
 			m.data[ptr] = val
+			m.keys[ptr] = key
 			m.size++
 			if m.size >= m.threshold {
 				m.rehash()
