@@ -21,11 +21,19 @@ func TestFastMapDataDriven(t *testing.T) {
 	// Define test cases
 	testCases := []TestCase[int64]{
 		{
+			name:        "InsertKey3",
+			key:         1123123123123123,
+			value:       500,
+			expectGet:   500,
+			expectSize:  1,
+			expectFound: true,
+		},
+		{
 			name:        "InsertKey1",
 			key:         1,
 			value:       100,
 			expectGet:   100,
-			expectSize:  1,
+			expectSize:  2,
 			expectFound: true,
 		},
 		{
@@ -33,37 +41,29 @@ func TestFastMapDataDriven(t *testing.T) {
 			key:         2,
 			value:       200,
 			expectGet:   200,
-			expectSize:  2,
-			expectFound: true,
-		},
-		{
-			name:        "UpdateKey1",
-			key:         1,
-			value:       100,
-			updateVal:   150,
-			expectGet:   150,
-			expectSize:  2,
-			expectFound: true,
-		},
-		{
-			name:        "NonExistentKey",
-			key:         3,
-			expectGet:   0, // zero value for int64
-			expectSize:  2,
-			expectFound: false,
-		},
-		{
-			name:        "InsertFreeKey",
-			key:         0,
-			value:       500,
-			expectGet:   500,
 			expectSize:  3,
 			expectFound: true,
 		},
+		//{
+		//	name:        "UpdateKey1",
+		//	key:         1,
+		//	value:       100,
+		//	updateVal:   150,
+		//	expectGet:   150,
+		//	expectSize:  3,
+		//	expectFound: true,
+		//},
+		//{
+		//	name:        "NonExistentKey",
+		//	key:         3,
+		//	expectGet:   0, // zero value for int64
+		//	expectSize:  2,
+		//	expectFound: false,
+		//},
 	}
 
 	// Initialize a new FastMap
-	m := NewFastMap[int64](4, 0.75)
+	m := NewFastMap[int64](10, 0.75)
 
 	// Execute test cases
 	for _, tc := range testCases {

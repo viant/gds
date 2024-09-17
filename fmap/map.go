@@ -2,6 +2,7 @@ package fmap
 
 import (
 	"math"
+	"sync/atomic"
 )
 
 // INT_PHI is a constant used in the hash function to scramble the keys.
@@ -28,11 +29,10 @@ type FastMap[T any] struct {
 	fillFactor float64 // Fill factor for resizing the map
 	threshold  int     // Resize threshold based on computeCapacity and fill factor
 	size       int     // Number of elements in the map
-
-	mask int64 // Mask for calculating indices during probing
-
-	hasFreeKey bool // Indicates if the map contains the FREE_KEY
-	freeVal    T    // Value associated with the FREE_KEY
+	cap        uint32
+	mask       int64 // Mask for calculating indices during probing
+	hasFreeKey bool  // Indicates if the map contains the FREE_KEY
+	freeVal    T     // Value associated with the FREE_KEY
 }
 
 // nextPowerOf2 returns the next power of two greater than or equal to x.
@@ -221,12 +221,12 @@ func (m *FastMap[T]) Iterator() func() (int, T, bool) {
 // rehash resizes the map when the load factor exceeds the threshold.
 // It doubles the computeCapacity and reinserts all existing keys and values.
 func (m *FastMap[T]) rehash() {
-	newCapacity := len(m.keys) * 2
 
+	newCapacity := len(m.keys) * 2
 	// Update mask and threshold based on new computeCapacity
 	m.mask = int64(newCapacity - 1)
 	m.threshold = int(math.Floor(float64(newCapacity) * m.fillFactor))
-
+	m.cap = uint32(newCapacity)
 	// Save old data
 	oldKeys := m.keys
 	oldData := m.data
@@ -244,7 +244,6 @@ func (m *FastMap[T]) rehash() {
 	for i := 0; i < len(oldKeys); i++ {
 		k := oldKeys[i]
 		if k != FREE_KEY {
-
 			m.Put(k, oldData[i])
 		}
 	}
@@ -260,6 +259,7 @@ func (m *FastMap[T]) Clear(expectedSize int, keys []int64, data []T) {
 	copy(m.data, data)
 	m.size = 0
 	m.hasFreeKey = false
+	m.cap = uint32(capacity)
 	m.mask = int64(capacity - 1)
 }
 
@@ -276,7 +276,7 @@ func (m *FastMap[T]) Cap() int {
 	if m == nil {
 		return 0
 	}
-	return len(m.keys)
+	return int(atomic.LoadUint32(&m.cap))
 }
 
 // NewNumericMap creates a new FastMap with the specified expected size and fill factor.
@@ -297,6 +297,7 @@ func NewFastMap[T any](expectedSize int, fillFactor float64) *FastMap[T] {
 		fillFactor: fillFactor,
 		threshold:  int(math.Floor(float64(capacity) * fillFactor)),
 		mask:       int64(capacity - 1),
+		cap:        uint32(capacity),
 	}
 	return m
 }
