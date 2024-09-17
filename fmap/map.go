@@ -81,25 +81,27 @@ func (m *FastMap[T]) Get(key int64) (T, bool) {
 		}
 		return zero, false
 	}
+	keys := m.keys
+	data := m.data
 
 	ptr := phiMix(key) & m.mask
-	k := m.keys[ptr]
+	k := keys[ptr]
 
 	if k == FREE_KEY {
 		return zero, false
 	}
 	if k == key {
-		return m.data[ptr], true
+		return data[ptr], true
 	}
 
 	for {
 		ptr = (ptr + 1) & m.mask
-		k = m.keys[ptr]
+		k = keys[ptr]
 		if k == FREE_KEY {
 			return zero, false
 		}
 		if k == key {
-			return m.data[ptr], true
+			return data[ptr], true
 		}
 	}
 }
