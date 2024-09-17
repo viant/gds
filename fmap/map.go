@@ -33,6 +33,7 @@ type FastMap[T any] struct {
 	mask       int64 // Mask for calculating indices during probing
 	hasFreeKey bool  // Indicates if the map contains the FREE_KEY
 	freeVal    T     // Value associated with the FREE_KEY
+	scn        uint32
 }
 
 // nextPowerOf2 returns the next power of two greater than or equal to x.
@@ -136,6 +137,11 @@ func (m *FastMap[T]) GetPointer(key int64) (*T, bool) {
 	}
 }
 
+// SCN returns the current sequence number of the map
+func (m *FastMap[T]) SCN() int {
+	return int(atomic.LoadUint32(&m.scn))
+}
+
 // Put adds or updates the key with the value val.
 func (m *FastMap[T]) Put(key int64, val T) {
 	if key == FREE_KEY {
@@ -221,7 +227,7 @@ func (m *FastMap[T]) Iterator() func() (int, T, bool) {
 // rehash resizes the map when the load factor exceeds the threshold.
 // It doubles the computeCapacity and reinserts all existing keys and values.
 func (m *FastMap[T]) rehash() {
-
+	atomic.AddUint32(&m.scn, 1)
 	newCapacity := len(m.keys) * 2
 	// Update mask and threshold based on new computeCapacity
 	m.mask = int64(newCapacity - 1)
@@ -247,6 +253,7 @@ func (m *FastMap[T]) rehash() {
 			m.Put(k, oldData[i])
 		}
 	}
+
 }
 
 func (m *FastMap[T]) Clear(expectedSize int, keys []int64, data []T) {
