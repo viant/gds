@@ -13,16 +13,30 @@ type Tree[T any] struct {
 	distanceFuncName DistanceFunction
 	distanceFnunc    DistanceFunc
 	values           values[T]
+	indexMap         map[int32]*Point
 }
 
 // Insert adds a new point (embedding vector) to the cover tree.
-func (t *Tree[T]) Insert(value T, point *Point) {
+func (t *Tree[T]) Insert(value T, point *Point) int32 {
 	point.index = t.values.put(value)
+	if t.indexMap == nil {
+		t.indexMap = make(map[int32]*Point)
+	}
+	t.indexMap[point.index] = point //
 	if t.root == nil {
 		t.root = &Node{point: point, level: 0}
 	} else {
 		t.insert(t.root, point, 0)
 	}
+	return point.index
+}
+
+// FindPointByIndex returns the point associated with the given index.
+func (t *Tree[T]) FindPointByIndex(index int32) *Point {
+	if point, exists := t.indexMap[index]; exists {
+		return point
+	}
+	return nil
 }
 
 func (t *Tree[T]) EncodeValues(writer io.Writer) error {
@@ -95,6 +109,11 @@ func (t *Tree[T]) Remove(point *Point) bool {
 	}
 	removed, newRoot := t.remove(t.root, point)
 	t.root = newRoot
+	if removed {
+		var empty T
+		t.values.data[point.index] = empty // Remove the value from the slice
+		delete(t.indexMap, point.index)    // Remove the point from the map
+	}
 	return removed
 }
 
