@@ -65,7 +65,7 @@ func (v *values[T]) Decode(reader io.Reader) error {
 		v.data = any(actual).([]T)
 	default:
 		v.ensureType()
-		if v.Type.Comparable() {
+		if v.Type.Comparable() && v.Type.Kind() != reflect.Pointer {
 			var raw []byte
 			buffer.Uint8s(&raw)
 			size := len(raw) / int(v.Type.Size())
@@ -96,11 +96,13 @@ func (v *values[T]) Encode(writer io.Writer) error {
 		buffer.Bools(actual)
 	default:
 		v.ensureType()
-		if v.Type.Comparable() {
+		if v.Type.Comparable() && v.Type.Kind() != reflect.Pointer {
 			raw := unsafe.Slice((*byte)(unsafe.Pointer(&v.data)), len(v.data)*int(v.Type.Size()))
 			buffer.Uint8s(raw)
 		} else {
-			return v.encodeCustom(buffer)
+			if err := v.encodeCustom(buffer); err != nil {
+				return err
+			}
 		}
 	}
 	_, err := writer.Write(buffer.Bytes())
@@ -136,6 +138,13 @@ func (v *values[T]) value(index int32) T {
 func (v *values[T]) decodeCustom(buffer *bintly.Reader) error {
 	size := buffer.Alloc()
 	v.data = make([]T, size)
+
+	if v.Type.Kind() == reflect.Ptr {
+		for i := range v.data {
+			v.data[i] = reflect.New(v.Type.Elem()).Interface().(T)
+		}
+	}
+
 	for i := range v.data {
 		decoder, ok := any(v.data[i]).(bintly.Decoder)
 		if !ok {

@@ -82,24 +82,38 @@ func (t *Tree[T]) DecodeTree(reader io.Reader) error {
 }
 
 func (t *Tree[T]) insert(node *Node, point *Point, level int32) {
-	baseLevel := float32(math.Pow(float64(t.base), float64(level)))
-	if t.distanceFnunc(point, node.point) < baseLevel {
-		for i := range node.children {
-			child := &node.children[i]
-			t.insert(child, point, level-1)
-			return
+	for {
+		baseLevel := float32(math.Pow(float64(t.base), float64(level)))
+		distance := t.distanceFnunc(point, node.point)
+
+		if distance < baseLevel {
+			// Check if the point can be inserted into any child
+			inserted := false
+			for i := range node.children {
+				child := &node.children[i]
+				if t.distanceFnunc(point, child.point) < baseLevel {
+					node = child
+					level--
+					inserted = true
+					break
+				}
+			}
+			if !inserted {
+				// Insert as a new child
+				node.children = append(node.children, NewNode(point, level-1, t.base))
+				return
+			}
+		} else {
+			// Promote the point to a higher level
+			level++
+			if level > node.level {
+				newRoot := NewNode(point, level, t.base)
+				newRoot.children = append(newRoot.children, *t.root)
+				t.root = &newRoot
+				return
+			}
 		}
-		node.children = append(node.children, NewNode(point, level-1, t.base))
-		return
 	}
-	if t.distanceFnunc(point, node.point) < node.baseLevel {
-		node.children = append(node.children, NewNode(point, level-1, t.base))
-		return
-	}
-	for level > node.level && t.distanceFnunc(point, node.point) >= baseLevel {
-		level++
-	}
-	t.insert(t.root, point, level)
 }
 
 // Remove removes a point (embedding vector) from the cover tree.
@@ -168,16 +182,17 @@ func (t *Tree[T]) Values(points []*Point) []T {
 }
 
 // KNearestNeighbors finds the k nearest neighbors of the given point (embedding vector) in the cover tree.
-func (t *Tree[T]) KNearestNeighbors(point *Point, k int) []*Point {
+func (t *Tree[T]) KNearestNeighbors(point *Point, k int) []*Neighbor {
 	if t.root == nil {
 		return nil
 	}
 	h := &Neighbors{}
 	heap.Init(h)
 	t.kNearestNeighbors(t.root, point, k, h)
-	result := make([]*Point, h.Len())
+	result := make([]*Neighbor, h.Len())
 	for i := len(result) - 1; i >= 0; i-- {
-		result[i] = heap.Pop(h).(Neighbor).Point
+		n := heap.Pop(h).(Neighbor)
+		result[i] = &n
 	}
 	return result
 }
